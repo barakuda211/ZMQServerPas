@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<doc>
+  <unit name="RobotField" />
+  <members>
+    <member name="M:__InitModule__">
+      <summary>--
+</summary>
+    </member>
+    <member name="M:__FinalizeModule__">
+      <summary>--
+</summary>
+    </member>
+  </members>
+</doc>
