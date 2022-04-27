@@ -6,48 +6,63 @@ using NetMQ;
 using PascalABCCompiler.SyntaxTree;
 using PascalABCCompiler.Errors;
 using PascalABCCompiler;
+using System.Threading;
 
 namespace ZMQServerPas
 {
     class ZMQServerPas
     {
-        static string Compile(Compiler c, string myfilename) {
-            var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
-            co.UseDllForSystemUnits = true;
-            co.Debug = false;
-            co.ForDebugging = false;
-            c.Reload();
-            return c.Compile(co);
+        public static ResponseSocket server;
+        public static PushSocket output;
+        public static PullSocket input;
+        public static Thread inputLoop = null;
+        public static StreamWriter currentInputStream = null;
+
+        public delegate void InputHandler(string output);
+        public static event InputHandler InputReceived;
+
+        static string Compile(Compiler c, string myfilename)
+        {
+                var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
+                co.UseDllForSystemUnits = true;
+                co.Debug = false;
+                co.ForDebugging = false;
+                c.Reload();
+                return c.Compile(co);
         }
-        static string RunProcess(string myexefilename, PublisherSocket output) {
+        static string RunProcess(string myexefilename, PushSocket output)
+        {
 
             string exe = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string exeDir = System.IO.Path.GetDirectoryName(exe);
-            var exePath = exeDir + $"\\PABCCompiler\\temp\\"+ myexefilename;
+            var exePath = exeDir + $"\\PABCCompiler\\temp\\" + myexefilename;
 
             var outputstring = new StringBuilder();
             var pabcnetcProcess = new System.Diagnostics.Process();
             pabcnetcProcess.StartInfo.FileName = myexefilename;
+            //pabcnetcProcess.StartInfo.WorkingDirectory = exeDir+"\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
             //pabcnetcProcess.StartInfo.CreateNoWindow:= true;
-            pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
+            //pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
             //pabcnetcProcess.StartInfo.RedirectStandardInput = true;
-            //pabcnetcProcess.StartInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;
+            pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
             pabcnetcProcess.EnableRaisingEvents = true;
 
             pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
             pabcnetcProcess.StartInfo.RedirectStandardError = true;
             pabcnetcProcess.StartInfo.RedirectStandardInput = true;
-            pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.Default;
+            //pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.Default;
             //pabcnetcProcess.StartInfo.StandardInputEncoding = Encoding.Default;
-            pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.Default;
+            //pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.Default;
 
-            
             pabcnetcProcess.OutputDataReceived += (o, e) =>
             {
                 if (e.Data != null)
                 {
-                    output.SendFrame(e.Data);
+                    var dataBytes = Encoding.UTF8.GetBytes(e.Data);
+                    var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
+                    var encodedData = Encoding.Default.GetString(encodedBytes);
+                    output.SendFrame(encodedData);
                 }
             };
 
@@ -55,15 +70,24 @@ namespace ZMQServerPas
             {
                 if (e.Data != null)
                 {
-                    //TODO обработка ввода
+                    if (e.Data == "[READLNSIGNAL]")
+                    {
+                        output.SendFrame("[READLNSIGNAL]");
+                    }
                 }
             };
 
             pabcnetcProcess.Start();
+
+            currentInputStream = new StreamWriter(pabcnetcProcess.StandardInput.BaseStream, Encoding.GetEncoding("cp866"));
+            currentInputStream.AutoFlush = true;
             pabcnetcProcess.BeginOutputReadLine();
+            pabcnetcProcess.BeginErrorReadLine();
+
             pabcnetcProcess.WaitForExit();
             //pabcnetcProcess.WaitForExit(5000);
-            if (!pabcnetcProcess.HasExited) { // убить процесс если он работвет больше 5 секунд. Скорее всего он завис
+            if (!pabcnetcProcess.HasExited)
+            { // убить процесс если он работвет больше 5 секунд. Скорее всего он завис
                 pabcnetcProcess.Kill();
                 outputstring.AppendLine("Программа завершена. Она работала более 5 секунд и, вероятно, зависла");
             }
@@ -71,55 +95,87 @@ namespace ZMQServerPas
         }
         static void Main(string[] args)
         {
-            //if (args.Length < 2)
+            //if (args.Length < 3)
             //{
             //    Console.WriteLine("No arguments!");
             //    Console.ReadKey();
             //    return;
             //}
             Console.WriteLine("Server start");
-            var server = new ResponseSocket();
-            var output = new PublisherSocket();
-            //server.Bind("tcp://*:" + args[0]); // 5557
-            //output.Bind("tcp://*:" + args[1]); // 5558
-            server.Bind("tcp://*:5557");
-            output.Bind("tcp://*:5558");
+            server = new ResponseSocket();
+            output = new PushSocket();
+            input = new PullSocket();
+            input.Connect("tcp://127.0.0.1:5555");
+            server.Connect("tcp://127.0.0.1:5557");
+            output.Connect("tcp://127.0.0.1:5556");
+            StartLoop();
 
             StringResourcesLanguage.LoadDefaultConfig();
             var c = new Compiler();
-            try
+
+            while (true)
             {
-                while (true) {
-                    var code = server.ReceiveFrameString();
+                var code = server.ReceiveFrameString();
+                string myfilename, myexefilename;
+                try
+                {
+                    myfilename = Helper.CreateTempPas(code);
+                    myexefilename = Compile(c, myfilename);
 
-                    var myfilename = Helper.CreateTempPas(code);
-                    var myexefilename = Compile(c, myfilename);
-
-                    if (myexefilename == null) {
+                    if (myexefilename == null)
+                    {
                         var msg = "";
-                        if (c.ErrorsList.Count > 0) {
+                        if (c.ErrorsList.Count > 0)
+                        {
                             var err = c.ErrorsList[0];
                             msg = Helper.EnhanceErrorMsg(err) + '\n';
                         }
                         server.SendFrame(msg);
                         continue;
                     }
-
-                    server.SendFrame("[OK]");
-                    myexefilename = myexefilename.Replace(".pas", ".exe");
-                    RunProcess(myexefilename, output);
-
-
-                    output.SendFrame("[END]");
-
-                    //server.SendFrame(output);
                 }
+                catch (Exception ex)
+                {
+                    server.SendFrame("Сломался компилятор(((( "+ex.Message);
+                    continue;
+                }
+
+                server.SendFrame("[OK]");
+                myexefilename = myexefilename.Replace(".pas", ".exe");
+                RunProcess(myexefilename, output);
+
+
+                output.SendFrame("[END]");
+
+                //server.SendFrame(output);
             }
-            catch (Exception e) {
-                System.Console.WriteLine(e);
-            }
+
             //readln;
             server.Dispose();
+        }
+
+        public static void TempInput(string s)
+        {
+            currentInputStream.WriteLine(s);
+        }
+
+        public static void StartLoop()
+        {
+            inputLoop = new Thread(InputLoop);
+            inputLoop.Start();
+
+            InputReceived += TempInput;
+        }
+
+        private static void InputLoop()
+        {
+            while (true)
+            {
+                var output = input.ReceiveFrameString();
+                InputReceived?.Invoke(output);
             }
+        }
+
+
     }
 }

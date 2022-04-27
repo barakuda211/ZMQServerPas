@@ -31,7 +31,7 @@ namespace ZMQServerPas
                 ind2 = msg.IndexOf(':', ind2);
                 if (ind2 > -1 && ind2 < msg.Length - 1)
                     ind2 = msg.IndexOf(':', ind2 + 1);
-                res = msg.Substring(ind2 + 1, msg.Length - ind2).Trim(' ');
+                res = msg.Substring(ind2 + 1).Trim(' ');
                 if (pos != "")
                     res = pos + ": " + res;
                 if (err0 is SemanticError) {
