@@ -15,7 +15,9 @@ namespace ZMQServerPas
         public static ResponseSocket server;
         public static PushSocket output;
         public static PullSocket input;
+        public static PullSocket heartbeat;
         public static Thread inputLoop = null;
+        public static Thread heartbeatLoop = null;
         public static StreamWriter currentInputStream = null;
 
         public delegate void InputHandler(string output);
@@ -95,7 +97,7 @@ namespace ZMQServerPas
         }
         static void Main(string[] args)
         {
-            //if (args.Length < 3)
+            //if (args.Length < 4)
             //{
             //    Console.WriteLine("No arguments!");
             //    Console.ReadKey();
@@ -105,6 +107,8 @@ namespace ZMQServerPas
             server = new ResponseSocket();
             output = new PushSocket();
             input = new PullSocket();
+            heartbeat = new PullSocket();
+            heartbeat.Connect("tcp://127.0.0.1:5554");
             input.Connect("tcp://127.0.0.1:5555");
             server.Connect("tcp://127.0.0.1:5557");
             output.Connect("tcp://127.0.0.1:5556");
@@ -164,7 +168,22 @@ namespace ZMQServerPas
             inputLoop = new Thread(InputLoop);
             inputLoop.Start();
 
+            heartbeatLoop = new Thread(HeartBeatLoop);
+            heartbeatLoop.Start();
+
             InputReceived += TempInput;
+        }
+
+        private static void HeartBeatLoop()
+        {
+            while (true)
+            {
+                Thread.Sleep(1000);
+                if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
+                    continue;
+
+                Environment.Exit(0);
+            }
         }
 
         private static void InputLoop()
