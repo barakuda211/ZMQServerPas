@@ -37,25 +37,19 @@ namespace ZMQServerPas
 
             string exe = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string exeDir = System.IO.Path.GetDirectoryName(exe);
-            var exePath = exeDir + $"\\PABCCompiler\\temp\\" + myexefilename;
 
             var outputstring = new StringBuilder();
             var pabcnetcProcess = new System.Diagnostics.Process();
             pabcnetcProcess.StartInfo.FileName = myexefilename;
-            //pabcnetcProcess.StartInfo.WorkingDirectory = exeDir+"\\temp\\";
+            pabcnetcProcess.StartInfo.WorkingDirectory = exeDir+"\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
-            //pabcnetcProcess.StartInfo.CreateNoWindow:= true;
-            //pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
-            //pabcnetcProcess.StartInfo.RedirectStandardInput = true;
             pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
             pabcnetcProcess.EnableRaisingEvents = true;
 
             pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
             pabcnetcProcess.StartInfo.RedirectStandardError = true;
             pabcnetcProcess.StartInfo.RedirectStandardInput = true;
-            //pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.Default;
-            //pabcnetcProcess.StartInfo.StandardInputEncoding = Encoding.Default;
-            //pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.Default;
+
 
             pabcnetcProcess.OutputDataReceived += (o, e) =>
             {
@@ -76,6 +70,8 @@ namespace ZMQServerPas
                     {
                         output.SendFrame("[READLNSIGNAL]");
                     }
+                    else
+                        Console.WriteLine(e.Data);
                 }
             };
 
@@ -148,7 +144,10 @@ namespace ZMQServerPas
                 myexefilename = myexefilename.Replace(".pas", ".exe");
                 RunProcess(myexefilename, output);
 
-
+                if (File.Exists(myfilename))
+                    File.Delete(myfilename);
+                if (File.Exists(myexefilename))
+                    File.Delete(myexefilename);
                 output.SendFrame("[END]");
 
                 //server.SendFrame(output);
