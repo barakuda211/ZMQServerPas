@@ -7,6 +7,7 @@ using PascalABCCompiler.SyntaxTree;
 using PascalABCCompiler.Errors;
 using PascalABCCompiler;
 using System.Threading;
+using System.Diagnostics;
 
 namespace ZMQServerPas
 {
@@ -20,17 +21,21 @@ namespace ZMQServerPas
         public static Thread heartbeatLoop = null;
         public static StreamWriter currentInputStream = null;
 
+        public static Process pabcnetcProcess = null;
+
         public delegate void InputHandler(string output);
         public static event InputHandler InputReceived;
 
+        public static StringBuilder resultString = new StringBuilder();
+
         static string Compile(Compiler c, string myfilename)
         {
-                var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
-                co.UseDllForSystemUnits = true;
-                co.Debug = false;
-                co.ForDebugging = false;
-                c.Reload();
-                return c.Compile(co);
+            var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
+            co.UseDllForSystemUnits = true;
+            co.Debug = false;
+            co.ForDebugging = false;
+            c.Reload();
+            return c.Compile(co);
         }
         static string RunProcess(string myexefilename, PushSocket output)
         {
@@ -39,9 +44,9 @@ namespace ZMQServerPas
             string exeDir = System.IO.Path.GetDirectoryName(exe);
 
             var outputstring = new StringBuilder();
-            var pabcnetcProcess = new System.Diagnostics.Process();
+            pabcnetcProcess = new System.Diagnostics.Process();
             pabcnetcProcess.StartInfo.FileName = myexefilename;
-            pabcnetcProcess.StartInfo.WorkingDirectory = exeDir+"\\temp\\";
+            pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
             pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
             pabcnetcProcess.EnableRaisingEvents = true;
@@ -58,8 +63,11 @@ namespace ZMQServerPas
                     var dataBytes = Encoding.UTF8.GetBytes(e.Data);
                     var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
                     var encodedData = Encoding.Default.GetString(encodedBytes);
-                    encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
-                    output.SendFrame(encodedData);
+                    encodedData = encodedData.Replace("[FAKELINE]", " ").Replace("[NEWLINE]", "</br>");
+                    if (encodedData.Replace(" ", "") == "")
+                        return;
+                    resultString.Append(encodedData);
+                    output.SendFrame(resultString.ToString());
                 }
             };
 
@@ -82,7 +90,7 @@ namespace ZMQServerPas
                         Console.WriteLine(encodedData);
                         output.SendFrame(encodedData);
                     }
-                        
+
                 }
             };
 
@@ -147,7 +155,7 @@ namespace ZMQServerPas
                 }
                 catch (Exception ex)
                 {
-                    server.SendFrame("Сломался компилятор(((( "+ex.Message);
+                    server.SendFrame("Сломался компилятор(((( " + ex.Message);
                     continue;
                 }
 
@@ -159,6 +167,7 @@ namespace ZMQServerPas
                     File.Delete(myfilename);
                 if (File.Exists(myexefilename))
                     File.Delete(myexefilename);
+                resultString.Clear();
                 output.SendFrame("[END]");
 
                 //server.SendFrame(output);
@@ -170,6 +179,13 @@ namespace ZMQServerPas
 
         public static void TempInput(string s)
         {
+            if (s == "[BREAK]")
+            {
+                pabcnetcProcess.Kill();
+                return;
+            }
+            resultString.Append(s + "</br>");
+            output.SendFrame(resultString.ToString());
             currentInputStream.WriteLine(s);
         }
 
