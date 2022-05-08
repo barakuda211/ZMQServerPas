@@ -58,6 +58,7 @@ namespace ZMQServerPas
                     var dataBytes = Encoding.UTF8.GetBytes(e.Data);
                     var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
                     var encodedData = Encoding.Default.GetString(encodedBytes);
+                    encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
                     output.SendFrame(encodedData);
                 }
             };
@@ -70,11 +71,14 @@ namespace ZMQServerPas
                     {
                         output.SendFrame("[READLNSIGNAL]");
                     }
+                    else if (e.Data == "[CODEPAGE65001]")
+                        return;
                     else
                     {
                         var dataBytes = Encoding.UTF8.GetBytes(e.Data);
                         var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
                         var encodedData = Encoding.Default.GetString(encodedBytes);
+                        encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
                         Console.WriteLine(encodedData);
                         output.SendFrame(encodedData);
                     }
