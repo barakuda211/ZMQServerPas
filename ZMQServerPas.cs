@@ -71,7 +71,14 @@ namespace ZMQServerPas
                         output.SendFrame("[READLNSIGNAL]");
                     }
                     else
-                        Console.WriteLine(e.Data);
+                    {
+                        var dataBytes = Encoding.UTF8.GetBytes(e.Data);
+                        var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
+                        var encodedData = Encoding.Default.GetString(encodedBytes);
+                        Console.WriteLine(encodedData);
+                        output.SendFrame(encodedData);
+                    }
+                        
                 }
             };
 

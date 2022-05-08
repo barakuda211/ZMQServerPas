@@ -56,7 +56,7 @@
       <HintPath>.\NetGenerator.dll</HintPath>
     </Reference>
     <Reference Include="NetMQ">
-      <HintPath>..\..\source\repos\JupyterPascalABC.NET\PABCCompiler\NetMQ.dll</HintPath>
+      <HintPath>.\NetMQ.dll</HintPath>
     </Reference>
     <Reference Include="OptimizerConversion">
       <HintPath>.\OptimizerConversion.dll</HintPath>
