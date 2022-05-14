@@ -32,7 +32,7 @@ namespace ZMQServerPas
         static string Compile(Compiler c, string myfilename)
         {
             var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
-            co.UseDllForSystemUnits = true;
+            co.UseDllForSystemUnits = false;
             co.Debug = false;
             co.ForDebugging = true;
             c.Reload();
@@ -47,6 +47,7 @@ namespace ZMQServerPas
             var outputstring = new StringBuilder();
             pabcnetcProcess = new System.Diagnostics.Process();
             pabcnetcProcess.StartInfo.FileName = myexefilename;
+            pabcnetcProcess.StartInfo.CreateNoWindow = true;
             pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
             pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
@@ -113,7 +114,7 @@ namespace ZMQServerPas
             pabcnetcProcess.BeginOutputReadLine();
             pabcnetcProcess.BeginErrorReadLine();
 
-            pabcnetcProcess.WaitForExit();
+           pabcnetcProcess.WaitForExit();
             //pabcnetcProcess.WaitForExit(5000);
             if (!pabcnetcProcess.HasExited)
             { // убить процесс если он работвет больше 5 секунд. Скорее всего он завис
@@ -175,12 +176,15 @@ namespace ZMQServerPas
 
                 server.SendFrame("[OK]");
                 myexefilename = myexefilename.Replace(".pas", ".exe");
+                var pdbFileName = myexefilename.Replace(".exe", ".pdb");
                 RunProcess(myexefilename, output);
 
                 if (File.Exists(myfilename))
                     File.Delete(myfilename);
                 if (File.Exists(myexefilename))
                     File.Delete(myexefilename);
+                if (File.Exists(pdbFileName))
+                    File.Delete(pdbFileName);
                 resultString.Clear();
                 output.SendFrame("[END]");
 
@@ -223,14 +227,14 @@ namespace ZMQServerPas
 
         private static void HeartBeatLoop()
         {
-            //while (true)
-            //{
-            //    Thread.Sleep(1000);
-            //    if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
-            //        continue;
+            while (true)
+            {
+                Thread.Sleep(1000);
+                if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
+                    continue;
 
-            //    Environment.Exit(0);
-            //}
+                Environment.Exit(0);
+            }
         }
 
         private static void InputLoop()
