@@ -8,6 +8,7 @@ using PascalABCCompiler.Errors;
 using PascalABCCompiler;
 using System.Threading;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace ZMQServerPas
 {
@@ -33,7 +34,7 @@ namespace ZMQServerPas
             var co = new CompilerOptions(myfilename, CompilerOptions.OutputType.ConsoleApplicaton);
             co.UseDllForSystemUnits = true;
             co.Debug = false;
-            co.ForDebugging = false;
+            co.ForDebugging = true;
             c.Reload();
             return c.Compile(co);
         }
@@ -49,6 +50,7 @@ namespace ZMQServerPas
             pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
             pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
+            pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.UTF8;
             pabcnetcProcess.EnableRaisingEvents = true;
 
             pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
@@ -71,6 +73,7 @@ namespace ZMQServerPas
                 }
             };
 
+            var errorResult = "";
             pabcnetcProcess.ErrorDataReceived += (o, e) =>
             {
                 if (e.Data != null)
@@ -84,12 +87,20 @@ namespace ZMQServerPas
                         return;
                     else
                     {
+                        if (e.Data == "")
+                            return;
+
+                        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+
                         var dataBytes = Encoding.UTF8.GetBytes(e.Data);
                         var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
                         var encodedData = Encoding.Default.GetString(encodedBytes);
+
                         encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
+
+                        errorResult += encodedData + "<br />";
                         Console.WriteLine(encodedData);
-                        output.SendFrame(encodedData);
+                        output.SendFrame(errorResult);
                     }
 
                 }
@@ -149,6 +160,8 @@ namespace ZMQServerPas
                         {
                             var err = c.ErrorsList[0];
                             msg = Helper.EnhanceErrorMsg(err) + '\n';
+                            if (msg == "\n")
+                                msg = err.ToString();
                         }
                         server.SendFrame(msg);
                         continue;
@@ -210,14 +223,14 @@ namespace ZMQServerPas
 
         private static void HeartBeatLoop()
         {
-            while (true)
-            {
-                Thread.Sleep(1000);
-                if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
-                    continue;
+            //while (true)
+            //{
+            //    Thread.Sleep(1000);
+            //    if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
+            //        continue;
 
-                Environment.Exit(0);
-            }
+            //    Environment.Exit(0);
+            //}
         }
 
         private static void InputLoop()
