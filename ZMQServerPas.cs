@@ -77,6 +77,7 @@ namespace ZMQServerPas
                 {
                     if (e.Data == "[READLNSIGNAL]")
                     {
+                        Thread.Sleep(300);
                         output.SendFrame("[READLNSIGNAL]");
                     }
                     else if (e.Data == "[CODEPAGE65001]")
@@ -181,12 +182,19 @@ namespace ZMQServerPas
         {
             if (s == "[BREAK]")
             {
-                pabcnetcProcess.Kill();
+                if (pabcnetcProcess != null && !pabcnetcProcess.HasExited)
+                {
+                    pabcnetcProcess.Kill();
+                    return;
+                }
                 return;
             }
-            resultString.Append(s + "</br>");
-            output.SendFrame(resultString.ToString());
-            currentInputStream.WriteLine(s);
+            if (!pabcnetcProcess.HasExited)
+            {
+                resultString.Append(s + "</br>");
+                output.SendFrame(resultString.ToString());
+                currentInputStream.WriteLine(s);
+            }
         }
 
         public static void StartLoop()
