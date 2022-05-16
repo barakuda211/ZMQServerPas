@@ -148,10 +148,11 @@ namespace ZMQServerPas
             while (true)
             {
                 var code = server.ReceiveFrameString();
-                string myfilename, myexefilename;
+                string filename="", myfilename="", myexefilename="";
                 try
                 {
                     myfilename = Helper.CreateTempPas(code);
+                    filename = myfilename.Replace(".pas", "");
                     myexefilename = Compile(c, myfilename);
 
                     if (myexefilename == null)
@@ -165,26 +166,23 @@ namespace ZMQServerPas
                                 msg = err.ToString();
                         }
                         server.SendFrame(msg);
+                        ClearTempFiles(filename);
                         continue;
                     }
                 }
                 catch (Exception ex)
                 {
                     server.SendFrame("Сломался компилятор(((( " + ex.Message);
+                    ClearTempFiles(filename);
                     continue;
                 }
 
                 server.SendFrame("[OK]");
                 myexefilename = myexefilename.Replace(".pas", ".exe");
-                var pdbFileName = myexefilename.Replace(".exe", ".pdb");
+                
                 RunProcess(myexefilename, output);
 
-                if (File.Exists(myfilename))
-                    File.Delete(myfilename);
-                if (File.Exists(myexefilename))
-                    File.Delete(myexefilename);
-                if (File.Exists(pdbFileName))
-                    File.Delete(pdbFileName);
+                ClearTempFiles(filename);
                 resultString.Clear();
                 output.SendFrame("[END]");
 
@@ -193,6 +191,16 @@ namespace ZMQServerPas
 
             //readln;
             server.Dispose();
+        }
+
+        public static void ClearTempFiles(string filename)
+        {
+            if (File.Exists(filename+".pas"))
+                File.Delete(filename + ".pas");
+            if (File.Exists(filename + ".exe"))
+                File.Delete(filename + ".exe");
+            if (File.Exists(filename + ".pdb"))
+                File.Delete(filename + ".pdb");
         }
 
         public static void TempInput(string s)
