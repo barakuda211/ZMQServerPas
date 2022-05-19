@@ -50,8 +50,8 @@ namespace ZMQServerPas
             pabcnetcProcess.StartInfo.CreateNoWindow = true;
             pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "\\temp\\";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
-            pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
-            pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+            pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(1251);
+            pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.GetEncoding(1251);
             pabcnetcProcess.EnableRaisingEvents = true;
 
             pabcnetcProcess.StartInfo.RedirectStandardOutput = true;
@@ -63,15 +63,24 @@ namespace ZMQServerPas
             {
                 if (e.Data != null)
                 {
-                    var dataBytes = Encoding.UTF8.GetBytes(e.Data);
-                    var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
-                    var encodedData = Encoding.Default.GetString(encodedBytes);
+                    var encodedData = e.Data;
                     encodedData = encodedData.Replace("[FAKELINE]", " ").Replace("[NEWLINE]", "</br>");
                     if (encodedData.Replace(" ", "") == "")
                         return;
                     resultString.Append(encodedData);
                     output.SendFrame(resultString.ToString());
                 }
+                //if (e.Data != null)
+                //{
+                //    var dataBytes = Encoding.UTF8.GetBytes(e.Data);
+                //    var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
+                //    var encodedData = Encoding.Default.GetString(encodedBytes);
+                //    encodedData = encodedData.Replace("[FAKELINE]", " ").Replace("[NEWLINE]", "</br>");
+                //    if (encodedData.Replace(" ", "") == "")
+                //        return;
+                //    resultString.Append(encodedData);
+                //    output.SendFrame(resultString.ToString());
+                //}
             };
 
             var errorResult = "";
@@ -91,14 +100,14 @@ namespace ZMQServerPas
                         if (e.Data == "")
                             return;
 
-                        Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+                        //Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-                        var dataBytes = Encoding.UTF8.GetBytes(e.Data);
-                        var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
-                        var encodedData = Encoding.Default.GetString(encodedBytes);
+                        //var dataBytes = Encoding.UTF8.GetBytes(e.Data);
+                        //var encodedBytes = Encoding.Convert(Encoding.UTF8, Encoding.Default, dataBytes);
+                        //var encodedData = Encoding.Default.GetString(encodedBytes);
 
-                        encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
-
+                        //encodedData = encodedData.Replace("[FAKELINE]", "").Replace("[NEWLINE]", "</br>");
+                        var encodedData = e.Data;
                         errorResult += encodedData + "<br />";
                         Console.WriteLine(encodedData);
                         output.SendFrame(errorResult);
