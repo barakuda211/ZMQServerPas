@@ -134,21 +134,25 @@ namespace ZMQServerPas
         }
         static void Main(string[] args)
         {
-            //if (args.Length < 4)
-            //{
-            //    Console.WriteLine("No arguments!");
-            //    Console.ReadKey();
-            //    return;
-            //}
+            if (args.Length < 4)
+            {
+                Console.WriteLine("No arguments!");
+                Console.ReadKey();
+                return;
+            }
             Console.WriteLine("Server start");
             server = new ResponseSocket();
             output = new PushSocket();
             input = new PullSocket();
             heartbeat = new PullSocket();
-            heartbeat.Connect("tcp://127.0.0.1:5554");
-            input.Connect("tcp://127.0.0.1:5555");
-            server.Connect("tcp://127.0.0.1:5557");
-            output.Connect("tcp://127.0.0.1:5556");
+            server.Connect("tcp://127.0.0.1:"+args[0]);
+            Console.WriteLine("Server socket started on " + args[0] + " port");
+            output.Connect("tcp://127.0.0.1:" + args[1]);
+            Console.WriteLine("Output socket started on " + args[1] + " port");
+            input.Connect("tcp://127.0.0.1:" + args[2]);
+            Console.WriteLine("Input socket started on " + args[2] + " port");
+            heartbeat.Connect("tcp://127.0.0.1:" + args[3]);
+            Console.WriteLine("HB socket started on " + args[3] + " port");
             StartLoop();
 
             StringResourcesLanguage.LoadDefaultConfig();
