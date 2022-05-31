@@ -46,9 +46,11 @@ namespace ZMQServerPas
 
             var outputstring = new StringBuilder();
             pabcnetcProcess = new System.Diagnostics.Process();
+            pabcnetcProcess.StartInfo.Verb = "mono";
             pabcnetcProcess.StartInfo.FileName = myexefilename;
             pabcnetcProcess.StartInfo.CreateNoWindow = true;
-            pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "\\temp\\";
+            //output.SendFrame(exeDir);
+            pabcnetcProcess.StartInfo.WorkingDirectory = exeDir + "/temp/";
             pabcnetcProcess.StartInfo.UseShellExecute = false;
             pabcnetcProcess.StartInfo.StandardOutputEncoding = Encoding.GetEncoding(1251);
             pabcnetcProcess.StartInfo.StandardErrorEncoding = Encoding.GetEncoding(1251);
@@ -134,6 +136,7 @@ namespace ZMQServerPas
         }
         static void Main(string[] args)
         {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             if (args.Length < 4)
             {
                 Console.WriteLine("No arguments!");
@@ -154,6 +157,8 @@ namespace ZMQServerPas
             heartbeat.Connect("tcp://127.0.0.1:" + args[3]);
             Console.WriteLine("HB socket started on " + args[3] + " port");
             StartLoop();
+
+            Logger.Log("Loops started!");
 
             StringResourcesLanguage.LoadDefaultConfig();
             var c = new Compiler();
@@ -208,12 +213,12 @@ namespace ZMQServerPas
 
         public static void ClearTempFiles(string filename)
         {
-            if (File.Exists(filename+".pas"))
-                File.Delete(filename + ".pas");
-            if (File.Exists(filename + ".exe"))
-                File.Delete(filename + ".exe");
-            if (File.Exists(filename + ".pdb"))
-                File.Delete(filename + ".pdb");
+            //if (File.Exists(filename+".pas"))
+            //    File.Delete(filename + ".pas");
+            //if (File.Exists(filename + ".exe"))
+            //    File.Delete(filename + ".exe");
+            //if (File.Exists(filename + ".pdb"))
+            //    File.Delete(filename + ".pdb");
         }
 
         public static void TempInput(string s)

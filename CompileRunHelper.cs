@@ -8,7 +8,7 @@ namespace ZMQServerPas
         public static string CreateTempPas(string code) {
             string exe = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string exeDir = System.IO.Path.GetDirectoryName(exe);
-            var myfilePath = exeDir + "\\temp\\"+Guid.NewGuid().ToString()+".pas";
+            var myfilePath = exeDir + "/temp/"+Guid.NewGuid().ToString()+".pas";
             //myfilename = Path.ChangeExtension(myfilename, "pas");
 
             using (StreamWriter sw = new StreamWriter(myfilePath))
