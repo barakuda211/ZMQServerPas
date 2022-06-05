@@ -90,6 +90,7 @@ namespace ZMQServerPas
             {
                 if (e.Data != null)
                 {
+                    Logger.Log("Error: "+e.Data);
                     if (e.Data == "[READLNSIGNAL]")
                     {
                         Thread.Sleep(300);
@@ -114,7 +115,6 @@ namespace ZMQServerPas
                         Console.WriteLine(encodedData);
                         output.SendFrame(errorResult);
                     }
-
                 }
             };
 
@@ -122,6 +122,7 @@ namespace ZMQServerPas
 
             currentInputStream = new StreamWriter(pabcnetcProcess.StandardInput.BaseStream, Encoding.GetEncoding("cp866"));
             currentInputStream.AutoFlush = true;
+
             pabcnetcProcess.BeginOutputReadLine();
             pabcnetcProcess.BeginErrorReadLine();
 
@@ -136,6 +137,7 @@ namespace ZMQServerPas
         }
         static void Main(string[] args)
         {
+            Logger.Init();
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             if (args.Length < 4)
             {
@@ -190,7 +192,7 @@ namespace ZMQServerPas
                 }
                 catch (Exception ex)
                 {
-                    server.SendFrame("Сломался компилятор(((( " + ex.Message);
+                    server.SendFrame("Сломался компилятор: " + ex.Message);
                     ClearTempFiles(filename);
                     continue;
                 }
@@ -213,12 +215,12 @@ namespace ZMQServerPas
 
         public static void ClearTempFiles(string filename)
         {
-            //if (File.Exists(filename+".pas"))
-            //    File.Delete(filename + ".pas");
-            //if (File.Exists(filename + ".exe"))
-            //    File.Delete(filename + ".exe");
-            //if (File.Exists(filename + ".pdb"))
-            //    File.Delete(filename + ".pdb");
+            if (File.Exists(filename+".pas"))
+                File.Delete(filename + ".pas");
+            if (File.Exists(filename + ".exe"))
+                File.Delete(filename + ".exe");
+            if (File.Exists(filename + ".exe.mdb"))
+                File.Delete(filename + ".exe.mdb");
         }
 
         public static void TempInput(string s)
