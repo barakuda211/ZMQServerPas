@@ -36,7 +36,11 @@ namespace ZMQServerPas
             co.Debug = false;
             co.ForDebugging = true;
             c.Reload();
-            return c.Compile(co);
+            var res = c.Compile(co);
+            c.Free();
+            c.ClearAll(true);
+            GC.Collect();
+            return res;
         }
         static string RunProcess(string myexefilename, PushSocket output)
         {
@@ -46,7 +50,7 @@ namespace ZMQServerPas
 
             var outputstring = new StringBuilder();
             pabcnetcProcess = new System.Diagnostics.Process();
-            pabcnetcProcess.StartInfo.Verb = "mono";
+            //pabcnetcProcess.StartInfo.Verb = "mono";
             pabcnetcProcess.StartInfo.FileName = myexefilename;
             pabcnetcProcess.StartInfo.CreateNoWindow = true;
             //output.SendFrame(exeDir);
@@ -165,6 +169,7 @@ namespace ZMQServerPas
             StringResourcesLanguage.LoadDefaultConfig();
             var c = new Compiler();
 
+            Logger.Log("Compiler created, ready for work!");
             while (true)
             {
                 var code = server.ReceiveFrameString();
@@ -187,6 +192,7 @@ namespace ZMQServerPas
                         }
                         server.SendFrame(msg);
                         ClearTempFiles(filename);
+                        GC.Collect();
                         continue;
                     }
                 }
@@ -194,9 +200,10 @@ namespace ZMQServerPas
                 {
                     server.SendFrame("Сломался компилятор: " + ex.Message);
                     ClearTempFiles(filename);
+                    GC.Collect();
                     continue;
                 }
-
+                
                 server.SendFrame("[OK]");
                 myexefilename = myexefilename.Replace(".pas", ".exe");
                 
@@ -205,7 +212,7 @@ namespace ZMQServerPas
                 ClearTempFiles(filename);
                 resultString.Clear();
                 output.SendFrame("[END]");
-
+                GC.Collect();
                 //server.SendFrame(output);
             }
 
@@ -260,7 +267,7 @@ namespace ZMQServerPas
                 Thread.Sleep(1000);
                 if (heartbeat.HasIn && heartbeat.ReceiveFrameString() == "[ALIVE]")
                     continue;
-
+                Logger.Log("Kernel is dead, exiting...");
                 Environment.Exit(0);
             }
         }

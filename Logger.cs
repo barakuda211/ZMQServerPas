@@ -28,7 +28,7 @@ namespace ZMQServerPas
 
         public static void Clear()
         {
-
+            File.WriteAllText(logPath + "CompilerLog.txt", "");
         }
 
         public static void Log(string message, string filenameTo = "CompilerLog.txt")
